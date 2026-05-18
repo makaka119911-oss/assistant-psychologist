@@ -38,7 +38,7 @@ export async function analyzeTranscript({
   const temperature =
     options.temperature !== undefined && options.temperature !== null
       ? Number(options.temperature)
-      : 0.2;
+      : 0.35;
 
   const userContent = [
     `Метаданные сессии: ${JSON.stringify(sessionMeta)}`,
@@ -47,6 +47,7 @@ export async function analyzeTranscript({
       : "",
     `Вот диалог (расшифровка разговора):\n\n${transcript}`,
     "Выдай результат строго в JSON формате (БЕЗ лишнего текста).",
+    "Проверь: в рекомендации_психологу минимум 3 техники, 5 уточняющих вопросов, развёрнутые «на что обратить внимание» и «зоны роста» — без прочерков и пустых полей.",
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -77,11 +78,26 @@ export async function analyzeTranscript({
 
   const data = await res.json();
   const raw = data.choices?.[0]?.message?.content || "{}";
+  let parsed;
   try {
-    return JSON.parse(raw);
+    parsed = JSON.parse(raw);
   } catch {
     const m = raw.match(/\{[\s\S]*\}/);
-    if (m) return JSON.parse(m[0]);
-    throw new Error("Модель вернула не JSON");
+    if (m) parsed = JSON.parse(m[0]);
+    else throw new Error("Модель вернула не JSON");
   }
+  return normalizeResult(parsed);
+}
+
+function normalizeResult(data) {
+  if (!data || typeof data !== "object") return data;
+  const r = data.рекомендации_психологу;
+  if (r && typeof r === "object") {
+    if (!r.уточняющие_вопросы && r.уточняющие_опросы) {
+      r.уточняющие_вопросы = r.уточняющие_опросы;
+    }
+    if (!Array.isArray(r.техники_интервенции)) r.техники_интервенции = [];
+    if (!Array.isArray(r.уточняющие_вопросы)) r.уточняющие_вопросы = [];
+  }
+  return data;
 }
