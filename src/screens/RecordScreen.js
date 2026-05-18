@@ -174,9 +174,18 @@ export default function RecordScreen({ navigation }) {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={styles.pad}>
       {phase === "idle" ? (
-        <Pressable style={[styles.bigBtn, { backgroundColor: colors.danger }]} onPress={start}>
-          <Text style={styles.bigBtnText}>Начать приём</Text>
-        </Pressable>
+        <>
+          <View style={[styles.tipCard, { backgroundColor: colors.accentSoft, borderColor: colors.border }]}>
+            <Text style={[styles.tipTitle, { color: colors.accent }]}>📱 Телефон</Text>
+            <Text style={[styles.tipText, { color: colors.text }]}>
+              • Очный приём — положите телефон между вами{"\n"}• Звонок клиенту — включите громкую связь, микрофон
+              слышит обоих{"\n"}• Не Expo Go — установите APK (см. docs/MOBILE-PHONE.md)
+            </Text>
+          </View>
+          <Pressable style={[styles.bigBtn, { backgroundColor: colors.accent }]} onPress={start}>
+            <Text style={styles.bigBtnText}>Начать приём</Text>
+          </Pressable>
+        </>
       ) : (
         <>
           <VoiceVisualizer level={phase === "recording" ? meter : 0} />
@@ -216,7 +225,10 @@ export default function RecordScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   pad: { padding: 20, paddingBottom: 40 },
-  bigBtn: { paddingVertical: 28, borderRadius: 16, alignItems: "center", marginTop: 40 },
+  tipCard: { borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 16 },
+  tipTitle: { fontWeight: "700", marginBottom: 6 },
+  tipText: { fontSize: 13, lineHeight: 20 },
+  bigBtn: { paddingVertical: 28, borderRadius: 20, alignItems: "center" },
   bigBtnText: { color: "#fff", fontSize: 22, fontWeight: "700" },
   status: { textAlign: "center", fontWeight: "700", fontSize: 16 },
   live: { textAlign: "center", fontSize: 13, marginVertical: 8 },

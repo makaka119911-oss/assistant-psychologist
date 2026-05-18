@@ -7,6 +7,10 @@ App.js
 app.json
 babel.config.js
 eas.json
+src/
+assets/
+android/
+ios/
 assets/
 android/
 ios/

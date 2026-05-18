@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#5b7c6e"
+      "backgroundColor": "#6b4eff"
     },
     "ios": {
       "supportsTablet": true,
@@ -23,7 +23,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#5b7c6e"
+        "backgroundColor": "#6b4eff"
       },
       "package": "ru.psychologist.assistant",
       "permissions": [
@@ -41,7 +41,7 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#5b7c6e"
+          "color": "#6b4eff"
         }
       ]
     ],

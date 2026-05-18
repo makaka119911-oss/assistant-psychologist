@@ -19,7 +19,8 @@ export async function requestPermissions() {
     allowsRecordingIOS: true,
     playsInSilentModeIOS: true,
     staysActiveInBackground: true,
-    shouldDuckAndroid: true,
+    shouldDuckAndroid: false,
+    playThroughEarpieceAndroid: false,
   });
 }
 

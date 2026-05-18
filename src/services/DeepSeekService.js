@@ -1,6 +1,5 @@
 /**
- * Анализ через ваш сервер (ключ в .env на ПК) или ключ в настройках телефона.
- * Данные уходят только на DeepSeek API.
+ * Анализ через Vercel API (Cerebras на сервере) или свой ключ в настройках.
  */
 import * as Network from "expo-network";
 import { loadSettings } from "./StorageService";
@@ -15,26 +14,37 @@ export async function isOnline() {
   }
 }
 
+async function serverReady(settings) {
+  const res = await fetch(`${settings.apiBaseUrl.replace(/\/$/, "")}/api/health`, {
+    method: "GET",
+  });
+  const data = await res.json();
+  if (!data.ok) return false;
+  return !!(data.cerebras || data.deepseek || settings.deepseekApiKey);
+}
+
 export async function analyzeTranscript(transcript, sessionMeta = {}, previous = null) {
   if (!(await isOnline())) {
     throw new Error(ERRORS.noInternet);
   }
 
   const settings = await loadSettings();
+  const base = settings.apiBaseUrl.replace(/\/$/, "");
+
   if (!settings.deepseekApiKey) {
-    // Проверим, есть ли ключ на сервере
     try {
-      const h = await fetch(`${settings.apiBaseUrl}/api/health`, { method: "GET" });
-      const data = await h.json();
-      if (!data.deepseek) throw new Error(ERRORS.noApiKey);
-    } catch {
+      if (!(await serverReady(settings))) {
+        throw new Error(ERRORS.noApiKey);
+      }
+    } catch (e) {
+      if (e.message === ERRORS.noApiKey) throw e;
       throw new Error(ERRORS.serverUnreachable);
     }
   }
 
   let res;
   try {
-    res = await fetch(`${settings.apiBaseUrl}/api/analyze`, {
+    res = await fetch(`${base}/api/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -65,7 +75,6 @@ export async function analyzeTranscript(transcript, sessionMeta = {}, previous =
   return data.result;
 }
 
-/** Повторный анализ для офлайн-сессий */
 export async function analyzePendingSession(session) {
   const text = session.transcript?.trim() || "";
   if (text.length < 30) throw new Error(ERRORS.tooShort);
