@@ -1,0 +1,14 @@
+mobile/
+node_modules/
+.env
+.env.*
+!.env.example
+App.js
+app.json
+babel.config.js
+eas.json
+assets/
+android/
+ios/
+scripts/
+docs/

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ассистент психолога-сексолога</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Ассистент психолога</h1>
+    <p>Разбор в реальном времени · анамнез · сексологический блок (DeepSeek)</p>
+  </header>
+
+  <div class="layout">
+    <section class="card">
+      <h2>Сессия</h2>
+      <div class="field">
+        <label>Имя клиента</label>
+        <input type="text" id="clientName" placeholder="Как представился клиент" />
+      </div>
+      <div class="toolbar">
+        <button type="button" id="btnStart">▶ Начать приём</button>
+        <button type="button" id="btnStop" class="secondary" disabled>■ Пауза</button>
+        <button type="button" id="btnAnalyze" class="secondary">🔄 Разбор сейчас</button>
+        <button type="button" id="btnExport">📄 Отчёт</button>
+        <button type="button" id="btnClear" class="danger">Очистить</button>
+      </div>
+      <p class="status" id="status">Нажми «Начать приём» · Chrome · микрофон</p>
+      <p class="live-status" id="liveStatus"></p>
+      <h2 style="margin-top:1rem">Расшифровка</h2>
+      <div id="transcript">Текст появится здесь…</div>
+    </section>
+
+    <section class="card">
+      <h2>Живой разбор</h2>
+      <p class="hint">Обновляется каждые ~25 сек и при новой речи</p>
+      <div id="anamnesis"></div>
+    </section>
+
+    <section class="card" style="grid-column: 1 / -1">
+      <h2>Детали разбора</h2>
+      <div id="analysis"></div>
+    </section>
+  </div>
+
+  <p class="disclaimer">
+    Инструмент помощи специалисту, не медицинский диагноз. Работает в Chrome с микрофоном (HTTPS).
+    Ключ DeepSeek настраивается в Vercel → Environment Variables.
+  </p>
+
+  <script src="app.js"></script>
+</body>
+</html>

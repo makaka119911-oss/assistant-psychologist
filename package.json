@@ -1,0 +1,12 @@
+{
+  "name": "assistant-psychologist",
+  "version": "1.0.0",
+  "description": "Ассистент психолога — веб + API (Vercel) + мобильное приложение в mobile/",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server/index.mjs",
+    "start": "node server/index.mjs",
+    "mobile": "cd mobile && npm start"
+  }
+}

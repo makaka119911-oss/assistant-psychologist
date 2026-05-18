@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "Ассистент психолога",
+    "slug": "assistant-psychologist",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "psychologist",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#5b7c6e"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ru.psychologist.assistant",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Микрофон нужен для записи сессии с клиентом.",
+        "NSSpeechRecognitionUsageDescription": "Распознавание речи для анамнеза и разбора.",
+        "UIBackgroundModes": ["audio"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#5b7c6e"
+      },
+      "package": "ru.psychologist.assistant",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+        "android.permission.WAKE_LOCK"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Запись голоса клиента во время приёма."
+        }
+      ],
+      "@react-native-voice/voice"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
