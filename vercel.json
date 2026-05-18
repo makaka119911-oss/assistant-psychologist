@@ -1,4 +1,5 @@
 {
+  "name": "assistant-psychologist",
   "version": 2,
   "functions": {
     "api/analyze.js": {
