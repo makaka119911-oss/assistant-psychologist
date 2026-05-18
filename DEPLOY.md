@@ -8,8 +8,8 @@
 
 1. Зайти на https://vercel.com → **Add New Project** → Import из GitHub `assistant-psychologist`
 2. **Environment Variables** (обязательно):
-   - `DEEPSEEK_API_KEY` = ваш ключ `sk-...`
-   - опционально: `DEEPSEEK_MODEL` = `deepseek-chat`
+   - `CEREBRAS_API_KEY` = ключ с [cloud.cerebras.ai](https://cloud.cerebras.ai)
+   - опционально: `CEREBRAS_MODEL` = `llama3.1-8b`
 3. Deploy
 
 После деплоя откройте сайт в **Chrome** → «Начать приём» → разрешите микрофон.
@@ -23,11 +23,11 @@ vercel dev
 
 В `.env.local` (для vercel dev):
 ```
-DEEPSEEK_API_KEY=sk-...
+CEREBRAS_API_KEY=csk-...
 ```
 
 ## Важно для браузера
 
 - Нужен **Chrome** (Web Speech API)
 - Микрофон по **HTTPS** — на Vercel это автоматически
-- Ключ DeepSeek только на сервере Vercel (в настройках проекта), не в коде
+- Ключ Cerebras только на сервере Vercel (в настройках проекта), не в коде

@@ -1,10 +1,10 @@
-import { analyzeTranscript } from "../server/deepseek.mjs";
+import { analyzeTranscript } from "../server/cerebras.mjs";
 
 export const config = {
   maxDuration: 60,
 };
 
-/** POST /api/analyze — разбор расшифровки через DeepSeek */
+/** POST /api/analyze — разбор расшифровки через Cerebras */
 export default async function handler(req, res) {
   if (req.method === "OPTIONS") {
     res.status(204).end();

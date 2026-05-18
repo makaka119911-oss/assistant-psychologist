@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { analyzeTranscript } from "./deepseek.mjs";
+import { analyzeTranscript } from "./cerebras.mjs";
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const root = join(__dir, "..");
@@ -26,9 +26,13 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.static(join(root, "public")));
 
 app.get("/api/health", (_req, res) => {
+  const cerebras = !!process.env.CEREBRAS_API_KEY;
   res.json({
     ok: true,
-    deepseek: !!process.env.DEEPSEEK_API_KEY,
+    cerebras,
+    model: process.env.CEREBRAS_MODEL || "llama3.1-8b",
+    provider: "cerebras",
+    deepseek: cerebras,
   });
 });
 
@@ -54,7 +58,7 @@ app.post("/api/analyze", async (req, res) => {
 
 app.listen(PORT, HOST, () => {
   console.log(`[Ассистент психолог] http://127.0.0.1:${PORT} (LAN: http://<IP>:${PORT})`);
-  if (!process.env.DEEPSEEK_API_KEY) {
-    console.warn("[!] Создай .env с DEEPSEEK_API_KEY");
+  if (!process.env.CEREBRAS_API_KEY) {
+    console.warn("[!] Создай .env с CEREBRAS_API_KEY");
   }
 });

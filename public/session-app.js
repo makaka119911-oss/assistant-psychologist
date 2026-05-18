@@ -1,6 +1,6 @@
 /**
  * Веб-приложение «Ассистент психолога»
- * Расшифровка (Chrome) + живой разбор DeepSeek
+ * Расшифровка (Chrome) + живой разбор Cerebras
  */
 (function () {
   const LIVE_INTERVAL_MS = 25000;
@@ -244,7 +244,7 @@
     if (analyzing) return;
     analyzing = true;
     btnAnalyze.disabled = true;
-    if (!silent) setStatus("Обновляем разбор DeepSeek…");
+    if (!silent) setStatus("Обновляем разбор…");
     setLiveStatus("⏳ Обновляем разбор…");
 
     try {
@@ -350,10 +350,10 @@
         return r.json();
       })
       .then(function (h) {
-        if (h.deepseek) {
+        if (h.cerebras || h.deepseek) {
           setStatus("Готово · Chrome · нажмите «Начать приём»");
         } else {
-          setStatus("Добавьте DEEPSEEK_API_KEY в Vercel и сделайте Redeploy");
+          setStatus("Добавьте CEREBRAS_API_KEY в Vercel и сделайте Redeploy");
         }
       })
       .catch(function () {
