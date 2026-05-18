@@ -1,0 +1,17 @@
+---
+description: Consult Obsidian second brain and matching skills before non-trivial work
+alwaysApply: true
+---
+
+# Second brain
+
+Vault: `C:\Users\Ягодка\Desktop\my project`
+
+Before significant implementation:
+
+1. Check `Проекты/` for a card matching this repo; read linked notes.
+2. For design/UI: use Lazyweb or dembrandt MCP when relevant; see `03 — Знания/00 — Индекс материалов.md`.
+3. Prefer project skills in `.agents/skills/` and global skills in `~/.cursor/skills/` (match task to skill description).
+4. If stack changed and no project skills: suggest `npx autoskills -y --agent cursor`.
+
+Do not bulk-install tools marked ❌ or ⚪ in the vault index without user approval.

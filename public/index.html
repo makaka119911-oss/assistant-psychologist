@@ -3,51 +3,93 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ассистент психолога-сексолога</title>
+  <title>Ассистент психолога — рабочее место специалиста</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header>
-    <h1>Ассистент психолога</h1>
-    <p>Разбор в реальном времени · анамнез · сексологический блок (Cerebras Llama 3.1)</p>
-  </header>
-
-  <div class="layout">
-    <section class="card">
-      <h2>Сессия</h2>
-      <div class="field">
-        <label>Имя клиента</label>
-        <input type="text" id="clientName" placeholder="Как представился клиент" />
+  <div class="app-shell">
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="brand">
+          <span class="logo" aria-hidden="true">🌿</span>
+          <div>
+            <h1>Ассистент психолога</h1>
+            <p class="tagline">Живой разбор · анамнез · подсказки для сессии</p>
+          </div>
+        </div>
+        <div class="stat-pills" id="statPills" aria-live="polite">
+          <span class="pill" id="pillApi">API …</span>
+          <span class="pill" id="pillSession">Сессия: пауза</span>
+          <span class="pill" id="pillChars">0 симв.</span>
+        </div>
       </div>
-      <div class="toolbar">
-        <button type="button" id="btnStart">▶ Начать приём</button>
-        <button type="button" id="btnStop" class="secondary" disabled>■ Пауза</button>
-        <button type="button" id="btnAnalyze" class="secondary">🔄 Разбор сейчас</button>
-        <button type="button" id="btnExport">📄 Отчёт</button>
-        <button type="button" id="btnClear" class="danger">Очистить</button>
-      </div>
-      <p class="status" id="status">Нажми «Начать приём» · Chrome · микрофон</p>
-      <p class="live-status" id="liveStatus"></p>
-      <h2 style="margin-top:1rem">Расшифровка</h2>
-      <div id="transcript">Текст появится здесь…</div>
-    </section>
+    </header>
 
-    <section class="card">
-      <h2>Живой разбор</h2>
-      <p class="hint">Обновляется каждые ~25 сек и при новой речи</p>
-      <div id="anamnesis"></div>
-    </section>
+    <main class="workspace">
+      <section class="panel panel-session">
+        <div class="panel-head">
+          <h2>Сессия</h2>
+          <span class="badge badge-soft">Chrome + микрофон</span>
+        </div>
 
-    <section class="card" style="grid-column: 1 / -1">
-      <h2>Детали разбора</h2>
-      <div id="analysis"></div>
-    </section>
+        <label class="input-label" for="clientName">Имя клиента</label>
+        <input type="text" id="clientName" class="input" placeholder="Как представился клиент" autocomplete="name" />
+
+        <div class="toolbar">
+          <button type="button" id="btnStart" class="btn btn-primary">
+            <span class="btn-icon">▶</span> Начать приём
+          </button>
+          <button type="button" id="btnStop" class="btn btn-ghost" disabled>
+            <span class="btn-icon">■</span> Пауза
+          </button>
+          <button type="button" id="btnAnalyze" class="btn btn-secondary">
+            <span class="btn-icon">↻</span> Разбор сейчас
+          </button>
+          <button type="button" id="btnExport" class="btn btn-ghost">Отчёт</button>
+          <button type="button" id="btnObsidian" class="btn btn-ghost" title="Markdown для Obsidian">Obsidian</button>
+          <button type="button" id="btnClear" class="btn btn-danger-text">Очистить</button>
+        </div>
+
+        <div class="status-bar">
+          <p class="status" id="status">Нажмите «Начать приём»</p>
+          <p class="live-status" id="liveStatus"></p>
+        </div>
+
+        <h2 class="section-label">Расшифровка</h2>
+        <p class="hint">Говорите свободно — текст появится ниже, как в диалоге</p>
+        <div id="transcript" class="chat-log" role="log" aria-live="polite">
+          <p class="chat-placeholder">Текст появится здесь…</p>
+        </div>
+      </section>
+
+      <section class="panel panel-live">
+        <div class="panel-head">
+          <h2>Живой разбор</h2>
+          <span class="badge">~25 сек</span>
+        </div>
+        <p class="hint">Анамнез и резюме обновляются во время приёма</p>
+        <div id="anamnesis" class="analysis-scroll"></div>
+      </section>
+
+      <section class="panel panel-details">
+        <div class="panel-head">
+          <h2>Детали разбора</h2>
+          <span class="badge badge-accent">для психолога</span>
+        </div>
+        <div id="analysis" class="analysis-scroll"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>
+        Инструмент помощи специалисту, не медицинский диагноз. Данные сессии можно сохранить в Obsidian или скачать отчёт.
+        Черновик автоматически хранится в браузере.
+      </p>
+    </footer>
   </div>
-
-  <p class="disclaimer">
-    Инструмент помощи специалисту, не медицинский диагноз. Работает в Chrome с микрофоном (HTTPS).
-    Ключ Cerebras (CEREBRAS_API_KEY) настраивается в Vercel → Environment Variables.
-  </p>
 
   <script src="/session-app.js" defer></script>
 </body>

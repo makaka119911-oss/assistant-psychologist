@@ -6,11 +6,14 @@
   const LIVE_INTERVAL_MS = 25000;
   const MIN_CHARS = 40;
   const MIN_GROWTH = 120;
+  const DRAFT_KEY = "psych-assistant-draft-v1";
 
   const $ = (id) => document.getElementById(id);
 
   let transcriptEl, statusEl, liveStatusEl, anamnesisEl, analysisEl, clientNameEl;
-  let btnStart, btnStop, btnAnalyze, btnExport, btnClear;
+  let btnStart, btnStop, btnAnalyze, btnExport, btnClear, btnObsidian;
+  let pillApi, pillSession, pillChars;
+  let saveTimer = null;
 
   let recognition = null;
   let listening = false;
@@ -25,10 +28,76 @@
     return lines.join("\n").trim();
   }
 
+  function updateStatPills() {
+    var len = getTranscriptText().length;
+    if (pillChars) pillChars.textContent = len + " симв.";
+    if (pillSession) {
+      pillSession.textContent = listening ? "Сессия: запись" : "Сессия: пауза";
+      pillSession.className = listening ? "pill live" : "pill";
+    }
+  }
+
+  function scheduleSaveDraft() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveDraft, 400);
+  }
+
+  function saveDraft() {
+    try {
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({
+          clientName: clientNameEl ? clientNameEl.value : "",
+          lines: lines,
+          lastResult: lastResult,
+          savedAt: new Date().toISOString(),
+        }),
+      );
+    } catch (e) {
+      console.warn("draft save", e);
+    }
+  }
+
+  function loadDraft() {
+    try {
+      var raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      var d = JSON.parse(raw);
+      if (d.clientName && clientNameEl) clientNameEl.value = d.clientName;
+      if (Array.isArray(d.lines) && d.lines.length) lines = d.lines;
+      if (d.lastResult) lastResult = d.lastResult;
+      renderTranscript();
+      if (lastResult) renderResult(lastResult);
+      updateStatPills();
+    } catch (e) {
+      console.warn("draft load", e);
+    }
+  }
+
   function renderTranscript() {
     if (!transcriptEl) return;
-    transcriptEl.textContent = getTranscriptText() || "Текст появится здесь…";
+    var text = getTranscriptText();
+    if (!text) {
+      transcriptEl.innerHTML = '<p class="chat-placeholder">Текст появится здесь…</p>';
+    } else if (lines.length) {
+      transcriptEl.innerHTML = lines
+        .map(function (line, i) {
+          return (
+            '<article class="chat-bubble"><time>Фрагмент ' +
+            (i + 1) +
+            "</time>" +
+            escapeHtml(line) +
+            "</article>"
+          );
+        })
+        .join("");
+    } else {
+      transcriptEl.innerHTML =
+        '<article class="chat-bubble">' + escapeHtml(text) + "</article>";
+    }
     transcriptEl.scrollTop = transcriptEl.scrollHeight;
+    updateStatPills();
+    scheduleSaveDraft();
   }
 
   function escapeHtml(s) {
@@ -52,6 +121,18 @@
       .join("")}</ul></div>`;
   }
 
+  function accordion(title, innerHtml, open) {
+    return (
+      '<details class="accordion"' +
+      (open ? " open" : "") +
+      "><summary>" +
+      escapeHtml(title) +
+      '</summary><div class="accordion-body">' +
+      innerHtml +
+      "</div></details>"
+    );
+  }
+
   function renderResult(data) {
     if (!data || !anamnesisEl || !analysisEl) return;
 
@@ -66,8 +147,7 @@
     const r = data.рекомендации_психологу || {};
     const s = data.сексуальный_анамнез || {};
 
-    anamnesisEl.innerHTML += [
-      '<h3 class="block-title">Анамнез</h3>',
+    var anamBody = [
       fieldBlock("Жалоба", a.жалоба_клиента),
       fieldBlock("Длительность", a.длительность_проблемы),
       fieldBlock("Семейное положение", a.семейное_положение),
@@ -76,25 +156,36 @@
       fieldBlock("Опыт терапии", a.предыдущий_опыт_терапии),
       renderList("Ключевые факты", a.ключевые_факты),
     ].join("");
+    anamnesisEl.innerHTML += accordion("Анамнез", anamBody, true);
 
-    analysisEl.innerHTML = [
-      '<h3 class="block-title">Психологический разбор</h3>',
+    var psychBody = [
       fieldBlock("Эмоциональное состояние", p.эмоциональное_состояние),
       renderList("Паттерны", p.основные_паттерны),
       renderList("Возможные причины", p.возможные_причины),
       fieldBlock("Защиты и сопротивление", p.защиты_и_сопротивление),
-      '<h3 class="block-title">Рекомендации психологу</h3>',
+    ].join("");
+
+    var recBody = [
       fieldBlock("На что обратить внимание", r.на_что_обратить_внимание),
       renderList("Техники", r.техники_интервенции),
       renderList("Уточняющие вопросы", r.уточняющие_вопросы),
       fieldBlock("Зоны роста", r.зоны_роста),
-      '<h3 class="block-title">Сексуальный анамнез</h3>',
+    ].join("");
+
+    var sexBody = [
       fieldBlock("Ориентация", s.сексуальная_ориентация),
       fieldBlock("Партнёр", s.партнёр),
       fieldBlock("Удовлетворённость", s.удовлетворённость),
       fieldBlock("Травмы / страхи", s.травмы_или_страхи),
       fieldBlock("Обращаться к сексологу", s.обращаться_ли_к_сексологу),
     ].join("");
+
+    analysisEl.innerHTML = [
+      accordion("Психологический разбор", psychBody, true),
+      '<div class="block-rec">' + accordion("Рекомендации психологу", recBody, true) + "</div>",
+      accordion("Сексуальный анамнез", sexBody, false),
+    ].join("");
+    scheduleSaveDraft();
   }
 
   function setLiveStatus(text) {
@@ -188,6 +279,7 @@
     lastResult = null;
     btnStart.disabled = true;
     btnStop.disabled = false;
+    updateStatPills();
     setStatus("Слушаю · разбор обновляется во время разговора", true);
     setLiveStatus("Ждём речь для первого разбора…");
 
@@ -226,6 +318,7 @@
     clearInterval(analyzeTimer);
     setStatus("Пауза. Можно нажать «Разбор сейчас»");
     setLiveStatus("");
+    updateStatPills();
   }
 
   function scheduleAutoAnalyze() {
@@ -281,23 +374,85 @@
     }
   }
 
-  function buildReportMarkdown() {
+  function slugify(s) {
+    return String(s || "klient")
+      .trim()
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 40) || "klient";
+  }
+
+  function buildReportMarkdown(obsidian) {
     var name = clientNameEl ? clientNameEl.value.trim() || "Клиент" : "Клиент";
+    var iso = new Date().toISOString();
     var date = new Date().toLocaleString("ru-RU");
-    var md = "# Сессия: " + name + "\n\nДата: " + date + "\n\n## Расшифровка\n\n" + getTranscriptText() + "\n\n";
+    var md = "";
+
+    if (obsidian) {
+      md +=
+        "---\n" +
+        "tags: [сессия, психология, ассистент]\n" +
+        "client: \"" +
+        name.replace(/"/g, "'") +
+        '"\n' +
+        "date: " +
+        iso.slice(0, 10) +
+        "\n" +
+        "source: assistant-psychologist\n" +
+        "status: " +
+        (lastResult ? "разбор-готов" : "черновик") +
+        "\n" +
+        "---\n\n";
+    }
+
+    md += "# Сессия: " + name + "\n\n**Дата:** " + date + "\n\n";
+    md += "## Расшифровка\n\n" + (getTranscriptText() || "_пусто_") + "\n\n";
+
     if (!lastResult) return md + "_Разбор не выполнялся_\n";
+
     md += "## Резюме\n\n" + (lastResult.краткое_резюме || "—") + "\n\n";
+    md += "## Анамнез\n\n```json\n" + JSON.stringify(lastResult.anamnesis || {}, null, 2) + "\n```\n\n";
+    md +=
+      "## Психологический разбор\n\n```json\n" +
+      JSON.stringify(lastResult.психологический_разбор || {}, null, 2) +
+      "\n```\n\n";
+    md +=
+      "## Рекомендации психологу\n\n```json\n" +
+      JSON.stringify(lastResult.рекомендации_психологу || {}, null, 2) +
+      "\n```\n\n";
+    if (obsidian) {
+      md += "## Связи\n\n- [[Проекты/assistant-psychologist]]\n";
+    }
     return md;
   }
 
-  function exportReport() {
-    var md = buildReportMarkdown();
+  function downloadMarkdown(md, prefix) {
+    var name = slugify(clientNameEl ? clientNameEl.value : "klient");
     var blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "session-" + Date.now() + ".md";
+    a.download = prefix + "-" + name + "-" + Date.now() + ".md";
     a.click();
     URL.revokeObjectURL(a.href);
+  }
+
+  function exportReport() {
+    downloadMarkdown(buildReportMarkdown(false), "session");
+  }
+
+  function exportObsidian() {
+    var md = buildReportMarkdown(true);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(md).then(
+        function () {
+          setLiveStatus("Скопировано в буфер · сохраняем файл…");
+        },
+        function () {},
+      );
+    }
+    downloadMarkdown(md, "obsidian");
+    setLiveStatus("Файл для Obsidian скачан · вставьте в vault «Сессии»");
   }
 
   function clearSession() {
@@ -309,8 +464,12 @@
     if (anamnesisEl) anamnesisEl.innerHTML = "";
     if (analysisEl) analysisEl.innerHTML = "";
     if (clientNameEl) clientNameEl.value = "";
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch (e) {}
     setStatus("Сессия очищена");
     setLiveStatus("");
+    updateStatPills();
   }
 
   function init() {
@@ -324,7 +483,11 @@
     btnStop = $("btnStop");
     btnAnalyze = $("btnAnalyze");
     btnExport = $("btnExport");
+    btnObsidian = $("btnObsidian");
     btnClear = $("btnClear");
+    pillApi = $("pillApi");
+    pillSession = $("pillSession");
+    pillChars = $("pillChars");
 
     if (!btnStart) {
       console.error("Кнопка btnStart не найдена");
@@ -341,20 +504,36 @@
       runAnalyze(false);
     });
     btnExport.addEventListener("click", exportReport);
+    if (btnObsidian) btnObsidian.addEventListener("click", exportObsidian);
     btnClear.addEventListener("click", function () {
       if (confirm("Очистить расшифровку и разбор?")) clearSession();
     });
+    if (clientNameEl) {
+      clientNameEl.addEventListener("input", scheduleSaveDraft);
+    }
+
+    loadDraft();
 
     fetch("/api/health")
       .then(function (r) {
         return r.json();
       })
       .then(function (h) {
+        if (pillApi) {
+          if (h.cerebras || h.deepseek) {
+            pillApi.textContent = "AI: Cerebras ✓";
+            pillApi.className = "pill ok";
+          } else {
+            pillApi.textContent = "AI: нет ключа";
+            pillApi.className = "pill";
+          }
+        }
         if (h.cerebras || h.deepseek) {
           setStatus("Готово · Chrome · нажмите «Начать приём»");
         } else {
           setStatus("Добавьте CEREBRAS_API_KEY в Vercel и сделайте Redeploy");
         }
+        updateStatPills();
       })
       .catch(function () {
         setStatus("Нет связи с сервером");
