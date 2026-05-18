@@ -1,35 +1,63 @@
 /**
- * Запись аудио (диктофон) + распознавание речи.
- * Запись работает офлайн; распознавание — при наличии движка на устройстве.
+ * Запись + распознавание речи. Режим звонка: громкая связь, перезапуск Voice.
  */
-import { Audio } from "expo-av";
+import { Audio, AndroidOutputFormat, AndroidAudioEncoder } from "expo-av";
 import Voice from "@react-native-voice/voice";
 import { ERRORS } from "../utils/constants";
+import { hideRecordingNotification, showRecordingNotification } from "./NotificationService";
 
 let recording = null;
 let meterCb = null;
 let meterTimer = null;
 let voiceLines = [];
 let onTranscriptCb = null;
+let sessionActive = false;
+let callMode = false;
+let voiceOk = false;
 
-export async function requestPermissions() {
-  const { granted } = await Audio.requestPermissionsAsync();
-  if (!granted) throw new Error(ERRORS.micDenied);
-  await Audio.setAudioModeAsync({
-    allowsRecordingIOS: true,
-    playsInSilentModeIOS: true,
-    staysActiveInBackground: true,
-    shouldDuckAndroid: false,
-    playThroughEarpieceAndroid: false,
-  });
+const SPEECH_RECORDING = {
+  isMeteringEnabled: true,
+  android: {
+    extension: ".m4a",
+    outputFormat: AndroidOutputFormat.MPEG_4,
+    audioEncoder: AndroidAudioEncoder.AAC,
+    sampleRate: 16000,
+    numberOfChannels: 1,
+    bitRate: 64000,
+  },
+  ios: {
+    extension: ".m4a",
+    outputFormat: "mpeg4",
+    audioQuality: Audio.IOSAudioQuality.MEDIUM,
+    sampleRate: 16000,
+    numberOfChannels: 1,
+    bitRate: 64000,
+    linearPCMBitDepth: 16,
+    linearPCMIsBigEndian: false,
+    linearPCMIsFloat: false,
+  },
+};
+
+export function isVoiceAvailable() {
+  return voiceOk;
 }
 
-/** Старт записи + распознавание */
-export async function startSession(onMeter, onTranscript) {
-  await requestPermissions();
-  onTranscriptCb = onTranscript;
-  voiceLines = [];
+export function isCallMode() {
+  return callMode;
+}
 
+async function startVoiceEngine() {
+  try {
+    await Voice.start("ru-RU");
+    voiceOk = true;
+  } catch (e) {
+    voiceOk = false;
+    console.warn("[Voice] start failed", e);
+    throw new Error(ERRORS.voiceUnavailable);
+  }
+}
+
+function bindVoiceHandlers() {
   Voice.onSpeechResults = (e) => {
     const t = e.value?.[0]?.trim();
     if (!t || !onTranscriptCb) return;
@@ -42,21 +70,56 @@ export async function startSession(onMeter, onTranscript) {
     onTranscriptCb([...voiceLines, t].join("\n"), false);
   };
   Voice.onSpeechError = (e) => {
-    if (e.error?.message?.includes("No speech")) return;
+    const msg = e.error?.message || "";
+    if (msg.includes("No speech") || msg.includes("no speech")) return;
     console.warn("[Voice]", e.error);
+    if (sessionActive && callMode) {
+      setTimeout(() => {
+        Voice.start("ru-RU").catch(() => {});
+      }, 400);
+    }
   };
+  Voice.onSpeechEnd = () => {
+    if (sessionActive) {
+      setTimeout(() => {
+        Voice.start("ru-RU").catch(() => {});
+      }, 300);
+    }
+  };
+}
 
-  try {
-    await Voice.start("ru-RU");
-  } catch {
-    console.warn(ERRORS.voiceUnavailable);
-  }
+export async function requestPermissions() {
+  const { granted } = await Audio.requestPermissionsAsync();
+  if (!granted) throw new Error(ERRORS.micDenied);
+  await Audio.setAudioModeAsync({
+    allowsRecordingIOS: true,
+    playsInSilentModeIOS: true,
+    staysActiveInBackground: true,
+    shouldDuckAndroid: false,
+    playThroughEarpieceAndroid: false,
+    interruptionModeAndroid: 1,
+    interruptionModeIOS: 1,
+  });
+}
 
-  const { recording: rec } = await Audio.Recording.createAsync(
-    { ...Audio.RecordingOptionsPresets.HIGH_QUALITY, isMeteringEnabled: true },
-    undefined,
-    120,
-  );
+/**
+ * @param {function} onMeter
+ * @param {function} onTranscript
+ * @param {{ callMode?: boolean }} options
+ */
+export async function startSession(onMeter, onTranscript, options = {}) {
+  await requestPermissions();
+  onTranscriptCb = onTranscript;
+  voiceLines = [];
+  sessionActive = true;
+  callMode = !!options.callMode;
+  voiceOk = false;
+
+  Voice.removeAllListeners();
+  bindVoiceHandlers();
+  await startVoiceEngine();
+
+  const { recording: rec } = await Audio.Recording.createAsync(SPEECH_RECORDING, undefined, 150);
   recording = rec;
   meterCb = onMeter;
   meterTimer = setInterval(async () => {
@@ -70,6 +133,8 @@ export async function startSession(onMeter, onTranscript) {
       /* ignore */
     }
   }, 100);
+
+  await showRecordingNotification(callMode);
 }
 
 export async function pauseSession() {
@@ -85,13 +150,14 @@ export async function resumeSession() {
   if (recording) await recording.startAsync();
   try {
     await Voice.start("ru-RU");
+    voiceOk = true;
   } catch {
     /* ignore */
   }
 }
 
-/** Стоп: возвращает { transcript, audioUri } */
 export async function stopSession() {
+  sessionActive = false;
   if (meterTimer) {
     clearInterval(meterTimer);
     meterTimer = null;
@@ -109,9 +175,11 @@ export async function stopSession() {
     /* ignore */
   }
   Voice.removeAllListeners();
+  await hideRecordingNotification();
   const transcript = voiceLines.join("\n");
   onTranscriptCb = null;
-  return { transcript, audioUri };
+  callMode = false;
+  return { transcript, audioUri, voiceOk };
 }
 
 export function getLiveTranscript() {

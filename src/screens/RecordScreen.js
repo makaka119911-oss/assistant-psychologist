@@ -7,6 +7,7 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  Switch,
 } from "react-native";
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import VoiceVisualizer from "../components/VoiceVisualizer";
@@ -29,6 +30,7 @@ export default function RecordScreen({ navigation }) {
   const [analysis, setAnalysis] = useState(null);
   const [liveStatus, setLiveStatus] = useState("");
   const [sessionId, setSessionId] = useState(null);
+  const [callMode, setCallMode] = useState(true);
 
   const lastResult = useRef(null);
   const lastLen = useRef(0);
@@ -80,9 +82,13 @@ export default function RecordScreen({ navigation }) {
       const session = await createSession("");
       setSessionId(session.id);
       await activateKeepAwakeAsync();
-      await AudioService.startSession(setMeter, (text) => setTranscript(text));
+      await AudioService.startSession(setMeter, (text) => setTranscript(text), { callMode });
       setPhase("recording");
-      setLiveStatus("Слушаю…");
+      setLiveStatus(
+        callMode
+          ? "Слушаю… Примите звонок → громкая связь"
+          : "Слушаю…",
+      );
       timerRef.current = setInterval(runAnalyze, LIVE_ANALYZE_MS);
       setTimeout(runAnalyze, 8000);
     } catch (e) {
@@ -123,8 +129,17 @@ export default function RecordScreen({ navigation }) {
       });
 
       if (text.length < 30) {
-        await updateSession(sessionId, { status: "error", errorMessage: ERRORS.tooShort });
-        Alert.alert("Мало текста", ERRORS.tooShort);
+        await updateSession(sessionId, {
+          status: "error",
+          errorMessage: ERRORS.tooShort,
+          pendingAnalysis: !!audioUri,
+        });
+        Alert.alert(
+          "Мало текста",
+          callMode
+            ? `${ERRORS.tooShort}\n\n${ERRORS.callModeHint}`
+            : ERRORS.tooShort,
+        );
         setPhase("idle");
         return;
       }
@@ -176,11 +191,17 @@ export default function RecordScreen({ navigation }) {
       {phase === "idle" ? (
         <>
           <View style={[styles.tipCard, { backgroundColor: colors.accentSoft, borderColor: colors.border }]}>
-            <Text style={[styles.tipTitle, { color: colors.accent }]}>📱 Телефон</Text>
+            <Text style={[styles.tipTitle, { color: colors.accent }]}>Входящий звонок</Text>
             <Text style={[styles.tipText, { color: colors.text }]}>
-              • Очный приём — положите телефон между вами{"\n"}• Звонок клиенту — включите громкую связь, микрофон
-              слышит обоих{"\n"}• Не Expo Go — установите APK (см. docs/MOBILE-PHONE.md)
+              1. Включите «Режим звонка» ниже{"\n"}
+              2. Нажмите «Начать приём»{"\n"}
+              3. Примите звонок → сразу громкая связь{"\n"}
+              4. После разговора вернитесь в приложение → «Закончить»
             </Text>
+          </View>
+          <View style={styles.switchRow}>
+            <Text style={{ color: colors.text, flex: 1, fontWeight: "600" }}>Режим звонка (громкая связь)</Text>
+            <Switch value={callMode} onValueChange={setCallMode} trackColor={{ true: colors.accent }} />
           </View>
           <Pressable style={[styles.bigBtn, { backgroundColor: colors.accent }]} onPress={start}>
             <Text style={styles.bigBtnText}>Начать приём</Text>
