@@ -1,25 +1,25 @@
-// Freudly-inspired палитра + тексты
+// Supabase-style dark + фиолетовый акцент (мобилка)
 
 export const LIGHT = {
-  bg: "#f6f4fc",
-  card: "#ffffff",
-  text: "#1c1833",
-  muted: "#6e6a86",
-  accent: "#6b4eff",
-  accentSoft: "#ede9ff",
-  danger: "#dc2626",
-  border: "#e8e4f4",
+  bg: "#171717",
+  card: "#232323",
+  text: "#ededed",
+  muted: "#a3a3a3",
+  accent: "#8b5cf6",
+  accentSoft: "rgba(139, 92, 246, 0.12)",
+  danger: "#f87171",
+  border: "#2e2e2e",
 };
 
 export const DARK = {
-  bg: "#14121f",
-  card: "#1f1c2e",
-  text: "#f4f2ff",
-  muted: "#9b96b0",
-  accent: "#8b74ff",
-  accentSoft: "#2a2440",
-  danger: "#f87171",
-  border: "#322e45",
+  bg: "#0a0a0a",
+  card: "#1a1a1a",
+  text: "#f5f5f5",
+  muted: "#737373",
+  accent: "#a78bfa",
+  accentSoft: "rgba(167, 139, 250, 0.15)",
+  danger: "#fca5a5",
+  border: "#262626",
 };
 
 export const LIVE_ANALYZE_MS = 25000;
