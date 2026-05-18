@@ -11,7 +11,7 @@
   const $ = (id) => document.getElementById(id);
 
   let transcriptEl, statusEl, liveStatusEl, anamnesisEl, analysisEl, clientNameEl;
-  let btnStart, btnStop, btnAnalyze, btnExport, btnClear, btnObsidian;
+  let btnStart, btnStop, btnAnalyze, btnExport, btnClear;
   let pillApi, pillSession, pillChars;
   let saveTimer = null;
 
@@ -383,30 +383,10 @@
       .slice(0, 40) || "klient";
   }
 
-  function buildReportMarkdown(obsidian) {
+  function buildReportMarkdown() {
     var name = clientNameEl ? clientNameEl.value.trim() || "Клиент" : "Клиент";
-    var iso = new Date().toISOString();
     var date = new Date().toLocaleString("ru-RU");
-    var md = "";
-
-    if (obsidian) {
-      md +=
-        "---\n" +
-        "tags: [сессия, психология, ассистент]\n" +
-        "client: \"" +
-        name.replace(/"/g, "'") +
-        '"\n' +
-        "date: " +
-        iso.slice(0, 10) +
-        "\n" +
-        "source: assistant-psychologist\n" +
-        "status: " +
-        (lastResult ? "разбор-готов" : "черновик") +
-        "\n" +
-        "---\n\n";
-    }
-
-    md += "# Сессия: " + name + "\n\n**Дата:** " + date + "\n\n";
+    var md = "# Сессия: " + name + "\n\n**Дата:** " + date + "\n\n";
     md += "## Расшифровка\n\n" + (getTranscriptText() || "_пусто_") + "\n\n";
 
     if (!lastResult) return md + "_Разбор не выполнялся_\n";
@@ -421,9 +401,6 @@
       "## Рекомендации психологу\n\n```json\n" +
       JSON.stringify(lastResult.рекомендации_психологу || {}, null, 2) +
       "\n```\n\n";
-    if (obsidian) {
-      md += "## Связи\n\n- [[Проекты/assistant-psychologist]]\n";
-    }
     return md;
   }
 
@@ -438,21 +415,7 @@
   }
 
   function exportReport() {
-    downloadMarkdown(buildReportMarkdown(false), "session");
-  }
-
-  function exportObsidian() {
-    var md = buildReportMarkdown(true);
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(md).then(
-        function () {
-          setLiveStatus("Скопировано в буфер · сохраняем файл…");
-        },
-        function () {},
-      );
-    }
-    downloadMarkdown(md, "obsidian");
-    setLiveStatus("Файл для Obsidian скачан · вставьте в vault «Сессии»");
+    downloadMarkdown(buildReportMarkdown(), "session");
   }
 
   function clearSession() {
@@ -483,7 +446,6 @@
     btnStop = $("btnStop");
     btnAnalyze = $("btnAnalyze");
     btnExport = $("btnExport");
-    btnObsidian = $("btnObsidian");
     btnClear = $("btnClear");
     pillApi = $("pillApi");
     pillSession = $("pillSession");
