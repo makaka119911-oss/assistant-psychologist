@@ -191,12 +191,13 @@ export default function RecordScreen({ navigation }) {
       {phase === "idle" ? (
         <>
           <View style={[styles.tipCard, { backgroundColor: colors.accentSoft, borderColor: colors.border }]}>
-            <Text style={[styles.tipTitle, { color: colors.accent }]}>Входящий звонок</Text>
+            <Text style={[styles.tipTitle, { color: colors.accent }]}>Samsung · входящий звонок</Text>
             <Text style={[styles.tipText, { color: colors.text }]}>
-              1. Включите «Режим звонка» ниже{"\n"}
-              2. Нажмите «Начать приём»{"\n"}
-              3. Примите звонок → сразу громкая связь{"\n"}
-              4. После разговора вернитесь в приложение → «Закончить»
+              1. «Режим звонка» — вкл.{"\n"}
+              2. «Начать приём» → потом ответить{"\n"}
+              3. В звонке — динамик (громкая связь){"\n"}
+              4. Батарея: для приложения «Без ограничений»{"\n"}
+              5. После разговора — «Закончить»
             </Text>
           </View>
           <View style={styles.switchRow}>
@@ -249,6 +250,7 @@ const styles = StyleSheet.create({
   tipCard: { borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 16 },
   tipTitle: { fontWeight: "700", marginBottom: 6 },
   tipText: { fontSize: 13, lineHeight: 20 },
+  switchRow: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
   bigBtn: { paddingVertical: 14, paddingHorizontal: 20, borderRadius: 6, alignItems: "center", borderWidth: 1, borderColor: "transparent" },
   bigBtnText: { color: "#fff", fontSize: 22, fontWeight: "700" },
   status: { textAlign: "center", fontWeight: "700", fontSize: 16 },
