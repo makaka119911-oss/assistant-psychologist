@@ -2,7 +2,9 @@ import "dotenv/config";
 import express from "express";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { analyzeTranscript } from "./cerebras.mjs";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const { analyzeTranscript } = require("../lib/analyzeCerebras.cjs");
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const root = join(__dir, "..");

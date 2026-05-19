@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Ассистент психолога — рабочее место специалиста</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -38,6 +39,48 @@
         <label class="input-label" for="clientName">Имя клиента</label>
         <input type="text" id="clientName" class="input" placeholder="Как представился клиент" autocomplete="name" />
 
+        <div class="session-meta-row">
+          <div>
+            <label class="input-label" for="sessionType">Тип сессии</label>
+            <select id="sessionType" class="input">
+              <option value="primary">Первичная</option>
+              <option value="followup">Повторная</option>
+              <option value="couple">Пара</option>
+              <option value="sexology">Сексология</option>
+            </select>
+          </div>
+          <div>
+            <label class="input-label" for="approach">Подход</label>
+            <select id="approach" class="input">
+              <option value="">Эклектика (по умолчанию)</option>
+              <option value="cbt">КПТ</option>
+              <option value="gestalt">Гештальт</option>
+              <option value="eft">ЭФТ</option>
+              <option value="eclectic">Эклектика</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="input-label" for="micSelect">Источник звука (микрофон)</label>
+        <select id="micSelect" class="input" aria-describedby="micHint">
+          <option value="">Системный микрофон по умолчанию</option>
+        </select>
+        <p id="micHint" class="hint">
+          Для Zoom / Телемост: <a href="https://vb-audio.com/Cable/" target="_blank" rel="noopener">VB-Cable</a> —
+          звук звонка в CABLE Input, здесь выберите <strong>CABLE Output</strong>.
+        </p>
+
+        <details class="call-help">
+          <summary>Zoom / Телемост — как слышать клиента</summary>
+          <ul>
+            <li><strong>Не тестируйте на YouTube</strong> — фразы теряются из‑за эха, это не звонок.</li>
+            <li><strong>С наушниками</strong> без кабеля Chrome слышит только вас, не клиента.</li>
+            <li><strong>Лучше:</strong> VB-Cable + CABLE Output в списке выше.</li>
+            <li><strong>Проще:</strong> колонки + Stereo Mix (если есть в Windows).</li>
+            <li>Сначала «Начать приём», потом войти в Zoom / Телемост.</li>
+          </ul>
+        </details>
+
         <div class="toolbar">
           <button type="button" id="btnStart" class="btn btn-primary">
             <span class="btn-icon">▶</span> Начать приём
@@ -49,8 +92,14 @@
             <span class="btn-icon">↻</span> Разбор сейчас
           </button>
           <button type="button" id="btnExport" class="btn btn-ghost">Отчёт</button>
+          <button type="button" id="btnSaveHistory" class="btn btn-ghost">В историю</button>
           <button type="button" id="btnClear" class="btn btn-danger-text">Очистить</button>
         </div>
+
+        <details class="history-panel" id="historyPanel">
+          <summary>История сессий (на этом устройстве)</summary>
+          <ul id="historyList" class="history-list"></ul>
+        </details>
 
         <div class="status-bar">
           <p class="status" id="status">Нажмите «Начать приём»</p>

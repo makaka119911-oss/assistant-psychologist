@@ -6,18 +6,45 @@
   const LIVE_INTERVAL_MS = 25000;
   const MIN_CHARS = 40;
   const MIN_GROWTH = 120;
-  const DRAFT_KEY = "psych-assistant-draft-v1";
+  const DRAFT_KEY = "psych-assistant-draft-v2";
+  const MIC_KEY = "psych-assistant-mic-id";
+  const HISTORY_KEY = "psych-assistant-history-v1";
+  const MAX_HISTORY = 80;
+
+  const SESSION_LABELS = {
+    primary: "Первичная",
+    followup: "Повторная",
+    couple: "Пара",
+    sexology: "Сексология",
+  };
+  const APPROACH_LABELS = {
+    cbt: "КПТ",
+    gestalt: "Гештальт",
+    eft: "ЭФТ",
+    eclectic: "Эклектика",
+  };
 
   const $ = (id) => document.getElementById(id);
 
-  let transcriptEl, statusEl, liveStatusEl, anamnesisEl, analysisEl, clientNameEl;
-  let btnStart, btnStop, btnAnalyze, btnExport, btnClear;
+  let transcriptEl,
+    statusEl,
+    liveStatusEl,
+    anamnesisEl,
+    analysisEl,
+    clientNameEl,
+    micSelectEl,
+    sessionTypeEl,
+    approachEl,
+    historyListEl;
+  let btnStart, btnStop, btnAnalyze, btnExport, btnClear, btnSaveHistory;
   let pillApi, pillSession, pillChars;
   let saveTimer = null;
 
   let recognition = null;
   let listening = false;
   let lines = [];
+  let interimLine = "";
+  let preferredMicId = "";
   let lastResult = null;
   let analyzeTimer = null;
   let analyzing = false;
@@ -26,6 +53,122 @@
 
   function getTranscriptText() {
     return lines.join("\n").trim();
+  }
+
+  function getSessionMeta() {
+    return {
+      clientName: clientNameEl ? clientNameEl.value.trim() || null : null,
+      sessionType: sessionTypeEl ? sessionTypeEl.value : "primary",
+      approach: approachEl ? approachEl.value || null : null,
+      at: new Date().toISOString(),
+    };
+  }
+
+  function loadHistory() {
+    try {
+      var raw = localStorage.getItem(HISTORY_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveHistory(list) {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, MAX_HISTORY)));
+    } catch (e) {
+      console.warn("history save", e);
+    }
+  }
+
+  function renderHistoryList() {
+    if (!historyListEl) return;
+    var list = loadHistory();
+    if (!list.length) {
+      historyListEl.innerHTML = '<li class="history-empty">Пока нет сохранённых сессий</li>';
+      return;
+    }
+    historyListEl.innerHTML = list
+      .map(function (item) {
+        var date = new Date(item.savedAt).toLocaleString("ru-RU", {
+          day: "2-digit",
+          month: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        var st = SESSION_LABELS[item.sessionType] || item.sessionType || "";
+        var ap = APPROACH_LABELS[item.approach] || "";
+        var meta = [st, ap].filter(Boolean).join(" · ");
+        return (
+          '<li class="history-item">' +
+          '<button type="button" class="history-load" data-id="' +
+          escapeHtml(item.id) +
+          '">' +
+          escapeHtml(item.clientName || "Без имени") +
+          " · " +
+          escapeHtml(date) +
+          (meta ? ' <span class="history-meta">' + escapeHtml(meta) + "</span>" : "") +
+          "</button>" +
+          '<button type="button" class="history-del" data-id="' +
+          escapeHtml(item.id) +
+          '" title="Удалить">×</button>' +
+          "</li>"
+        );
+      })
+      .join("");
+  }
+
+  function saveCurrentToHistory() {
+    var text = getTranscriptText();
+    if (!text && !lastResult) {
+      setStatus("Нечего сохранять — нет текста и разбора");
+      return;
+    }
+    var meta = getSessionMeta();
+    var entry = {
+      id: "h-" + Date.now(),
+      clientName: meta.clientName || "Клиент",
+      sessionType: meta.sessionType,
+      approach: meta.approach,
+      savedAt: new Date().toISOString(),
+      lines: lines.slice(),
+      result: lastResult,
+    };
+    var list = loadHistory();
+    list.unshift(entry);
+    saveHistory(list);
+    renderHistoryList();
+    setStatus("Сессия сохранена в историю на этом устройстве");
+  }
+
+  function loadHistoryEntry(id) {
+    var list = loadHistory();
+    var item = list.find(function (x) {
+      return x.id === id;
+    });
+    if (!item) return;
+    stopListening();
+    lines = item.lines ? item.lines.slice() : [];
+    lastResult = item.result || null;
+    if (clientNameEl) clientNameEl.value = item.clientName || "";
+    if (sessionTypeEl && item.sessionType) sessionTypeEl.value = item.sessionType;
+    if (approachEl) approachEl.value = item.approach || "";
+    renderTranscript();
+    if (lastResult) renderResult(lastResult);
+    else {
+      if (anamnesisEl) anamnesisEl.innerHTML = "";
+      if (analysisEl) analysisEl.innerHTML = "";
+    }
+    scheduleSaveDraft();
+    setStatus("Загружена сессия из истории");
+  }
+
+  function deleteHistoryEntry(id) {
+    var list = loadHistory().filter(function (x) {
+      return x.id !== id;
+    });
+    saveHistory(list);
+    renderHistoryList();
   }
 
   function updateStatPills() {
@@ -48,6 +191,8 @@
         DRAFT_KEY,
         JSON.stringify({
           clientName: clientNameEl ? clientNameEl.value : "",
+          sessionType: sessionTypeEl ? sessionTypeEl.value : "primary",
+          approach: approachEl ? approachEl.value : "",
           lines: lines,
           lastResult: lastResult,
           savedAt: new Date().toISOString(),
@@ -64,6 +209,8 @@
       if (!raw) return;
       var d = JSON.parse(raw);
       if (d.clientName && clientNameEl) clientNameEl.value = d.clientName;
+      if (sessionTypeEl && d.sessionType) sessionTypeEl.value = d.sessionType;
+      if (approachEl && d.approach !== undefined) approachEl.value = d.approach;
       if (Array.isArray(d.lines) && d.lines.length) lines = d.lines;
       if (d.lastResult) lastResult = d.lastResult;
       renderTranscript();
@@ -79,8 +226,8 @@
     var text = getTranscriptText();
     if (!text) {
       transcriptEl.innerHTML = '<p class="chat-placeholder">Текст появится здесь…</p>';
-    } else if (lines.length) {
-      transcriptEl.innerHTML = lines
+    } else if (lines.length || interimLine) {
+      var html = lines
         .map(function (line, i) {
           return (
             '<article class="chat-bubble"><time>Фрагмент ' +
@@ -91,6 +238,13 @@
           );
         })
         .join("");
+      if (interimLine) {
+        html +=
+          '<article class="chat-bubble chat-bubble--interim"><time>сейчас</time>' +
+          escapeHtml(interimLine) +
+          "</article>";
+      }
+      transcriptEl.innerHTML = html;
     } else {
       transcriptEl.innerHTML =
         '<article class="chat-bubble">' + escapeHtml(text) + "</article>";
@@ -133,14 +287,28 @@
     );
   }
 
+  function renderSayNow(items) {
+    if (!items || !items.length) return "";
+    return (
+      '<div class="say-now"><strong>Что сказать сейчас</strong><ol class="say-now-list">' +
+      items
+        .filter(Boolean)
+        .slice(0, 3)
+        .map(function (x) {
+          return "<li>" + escapeHtml(x) + "</li>";
+        })
+        .join("") +
+      "</ol></div>"
+    );
+  }
+
   function renderResult(data) {
     if (!data || !anamnesisEl || !analysisEl) return;
 
-    if (data.краткое_резюме) {
-      anamnesisEl.innerHTML = `<div class="resume">${escapeHtml(data.краткое_резюме)}</div>`;
-    } else {
-      anamnesisEl.innerHTML = "";
-    }
+    var sayHtml = renderSayNow(data.что_сказать_сейчас);
+    var resumeHtml = data.краткое_резюме
+      ? '<div class="resume">' + escapeHtml(data.краткое_резюме) + "</div>"
+      : "";
 
     const a = data.anamnesis || {};
     const p = data.психологический_разбор || {};
@@ -156,7 +324,7 @@
       fieldBlock("Опыт терапии", a.предыдущий_опыт_терапии),
       renderList("Ключевые факты", a.ключевые_факты),
     ].join("");
-    anamnesisEl.innerHTML += accordion("Анамнез", anamBody, true);
+    anamnesisEl.innerHTML = sayHtml + resumeHtml + accordion("Анамнез", anamBody, true);
 
     var psychBody = [
       fieldBlock("Эмоциональное состояние", p.эмоциональное_состояние),
@@ -180,11 +348,24 @@
       fieldBlock("Обращаться к сексологу", s.обращаться_ли_к_сексологу),
     ].join("");
 
-    analysisEl.innerHTML = [
+    var hw = data.домашнее_задание && data.домашнее_задание.length;
+    var hwBody = hw
+      ? '<ul class="compact">' +
+        data.домашнее_задание
+          .filter(Boolean)
+          .map(function (x) {
+            return "<li>" + escapeHtml(x) + "</li>";
+          })
+          .join("") +
+        "</ul>"
+      : "";
+    var analysisParts = [
       accordion("Психологический разбор", psychBody, true),
       '<div class="block-rec">' + accordion("Рекомендации психологу", recBody, true) + "</div>",
-      accordion("Сексуальный анамнез", sexBody, false),
-    ].join("");
+    ];
+    if (hw) analysisParts.push(accordion("Домашнее задание клиенту", hwBody, true));
+    analysisParts.push(accordion("Сексуальный анамнез", sexBody, false));
+    analysisEl.innerHTML = analysisParts.join("");
     scheduleSaveDraft();
   }
 
@@ -212,18 +393,23 @@
     recognition.interimResults = true;
 
     recognition.onresult = function (event) {
-      var chunk = "";
+      var finalChunk = "";
+      var interim = "";
       for (var i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) chunk += event.results[i][0].transcript;
+        var t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) finalChunk += t;
+        else interim += t;
       }
-      if (chunk.trim()) {
-        lines.push(chunk.trim());
-        renderTranscript();
+      interimLine = interim.trim();
+      if (finalChunk.trim()) {
+        lines.push(finalChunk.trim());
+        interimLine = "";
         var len = getTranscriptText().length;
         if (listening && len >= MIN_CHARS && len - lastAnalyzedLen >= MIN_GROWTH && !analyzing) {
           runAnalyze(true);
         }
       }
+      renderTranscript();
     };
 
     recognition.onerror = function (e) {
@@ -249,17 +435,50 @@
     return true;
   }
 
+  async function loadMicDevices() {
+    if (!micSelectEl || !navigator.mediaDevices?.enumerateDevices) return;
+    try {
+      var devices = await navigator.mediaDevices.enumerateDevices();
+      var inputs = devices.filter(function (d) {
+        return d.kind === "audioinput";
+      });
+      micSelectEl.innerHTML =
+        '<option value="">Системный микрофон по умолчанию</option>' +
+        inputs
+          .map(function (d) {
+            var label = d.label || "Микрофон " + d.deviceId.slice(0, 8);
+            var sel = d.deviceId === preferredMicId ? " selected" : "";
+            return (
+              '<option value="' +
+              d.deviceId.replace(/"/g, "") +
+              '"' +
+              sel +
+              ">" +
+              escapeHtml(label) +
+              "</option>"
+            );
+          })
+          .join("");
+    } catch (e) {
+      console.warn("mic list", e);
+    }
+  }
+
   async function requestMicrophone() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
     try {
-      var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      var audio = true;
+      if (preferredMicId) {
+        audio = { deviceId: { exact: preferredMicId } };
+      }
+      var stream = await navigator.mediaDevices.getUserMedia({ audio: audio });
       stream.getTracks().forEach(function (t) {
         t.stop();
       });
       return true;
     } catch (e) {
-      setStatus("Разрешите доступ к микрофону");
-      setLiveStatus("Микрофон заблокирован");
+      setStatus("Не удалось открыть выбранный микрофон — попробуйте «по умолчанию»");
+      setLiveStatus("Микрофон: " + (e.message || "ошибка"));
       return false;
     }
   }
@@ -359,10 +578,7 @@
         body: JSON.stringify({
           transcript: text,
           previous: lastResult,
-          sessionMeta: {
-            clientName: clientNameEl ? clientNameEl.value.trim() || null : null,
-            at: new Date().toISOString(),
-          },
+          sessionMeta: getSessionMeta(),
         }),
       });
       var data = await parseApiResponse(res);
@@ -396,14 +612,33 @@
   }
 
   function buildReportMarkdown() {
-    var name = clientNameEl ? clientNameEl.value.trim() || "Клиент" : "Клиент";
+    var meta = getSessionMeta();
+    var name = meta.clientName || "Клиент";
     var date = new Date().toLocaleString("ru-RU");
-    var md = "# Сессия: " + name + "\n\n**Дата:** " + date + "\n\n";
-    md += "## Расшифровка\n\n" + (getTranscriptText() || "_пусто_") + "\n\n";
+    var st = SESSION_LABELS[meta.sessionType] || "";
+    var ap = APPROACH_LABELS[meta.approach] || "";
+    var md = "# Сессия: " + name + "\n\n**Дата:** " + date + "\n";
+    if (st) md += "**Тип:** " + st + "\n";
+    if (ap) md += "**Подход:** " + ap + "\n";
+    md += "\n## Расшифровка\n\n" + (getTranscriptText() || "_пусто_") + "\n\n";
 
     if (!lastResult) return md + "_Разбор не выполнялся_\n";
 
+    if (lastResult.что_сказать_сейчас && lastResult.что_сказать_сейчас.length) {
+      md += "## Что сказать сейчас\n\n";
+      lastResult.что_сказать_сейчас.forEach(function (x, i) {
+        md += i + 1 + ". " + x + "\n";
+      });
+      md += "\n";
+    }
     md += "## Резюме\n\n" + (lastResult.краткое_резюме || "—") + "\n\n";
+    if (lastResult.домашнее_задание && lastResult.домашнее_задание.length) {
+      md += "## Домашнее задание\n\n";
+      lastResult.домашнее_задание.forEach(function (x, i) {
+        md += i + 1 + ". " + x + "\n";
+      });
+      md += "\n";
+    }
     md += "## Анамнез\n\n```json\n" + JSON.stringify(lastResult.anamnesis || {}, null, 2) + "\n```\n\n";
     md +=
       "## Психологический разбор\n\n```json\n" +
@@ -433,6 +668,7 @@
   function clearSession() {
     stopListening();
     lines = [];
+    interimLine = "";
     lastResult = null;
     lastAnalyzedLen = 0;
     renderTranscript();
@@ -454,12 +690,17 @@
     anamnesisEl = $("anamnesis");
     analysisEl = $("analysis");
     clientNameEl = $("clientName");
+    sessionTypeEl = $("sessionType");
+    approachEl = $("approach");
+    micSelectEl = $("micSelect");
+    historyListEl = $("historyList");
+    preferredMicId = localStorage.getItem(MIC_KEY) || "";
     btnStart = $("btnStart");
     btnStop = $("btnStop");
     btnAnalyze = $("btnAnalyze");
     btnExport = $("btnExport");
     btnClear = $("btnClear");
-    btnObsidian = $("btnObsidian");
+    btnSaveHistory = $("btnSaveHistory");
     pillApi = $("pillApi");
     pillSession = $("pillSession");
     pillChars = $("pillChars");
@@ -470,6 +711,17 @@
     }
 
     setupRecognition();
+    loadMicDevices();
+    if (micSelectEl) {
+      micSelectEl.addEventListener("change", function () {
+        preferredMicId = micSelectEl.value || "";
+        if (preferredMicId) localStorage.setItem(MIC_KEY, preferredMicId);
+        else localStorage.removeItem(MIC_KEY);
+      });
+    }
+    if (navigator.mediaDevices?.addEventListener) {
+      navigator.mediaDevices.addEventListener("devicechange", loadMicDevices);
+    }
 
     btnStart.addEventListener("click", function () {
       startListening();
@@ -479,14 +731,27 @@
       runAnalyze(false);
     });
     btnExport.addEventListener("click", exportReport);
+    if (btnSaveHistory) btnSaveHistory.addEventListener("click", saveCurrentToHistory);
     btnClear.addEventListener("click", function () {
       if (confirm("Очистить расшифровку и разбор?")) clearSession();
     });
-    if (clientNameEl) {
-      clientNameEl.addEventListener("input", scheduleSaveDraft);
+    if (clientNameEl) clientNameEl.addEventListener("input", scheduleSaveDraft);
+    if (sessionTypeEl) sessionTypeEl.addEventListener("change", scheduleSaveDraft);
+    if (approachEl) approachEl.addEventListener("change", scheduleSaveDraft);
+    if (historyListEl) {
+      historyListEl.addEventListener("click", function (e) {
+        var loadBtn = e.target.closest(".history-load");
+        var delBtn = e.target.closest(".history-del");
+        if (loadBtn) loadHistoryEntry(loadBtn.getAttribute("data-id"));
+        if (delBtn) {
+          e.stopPropagation();
+          if (confirm("Удалить запись из истории?")) deleteHistoryEntry(delBtn.getAttribute("data-id"));
+        }
+      });
     }
 
     loadDraft();
+    renderHistoryList();
 
     fetch("/api/health")
       .then(function (r) {
