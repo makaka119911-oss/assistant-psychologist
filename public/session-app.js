@@ -7,7 +7,6 @@
   const MIN_CHARS = 40;
   const MIN_GROWTH = 120;
   const DRAFT_KEY = "psych-assistant-draft-v2";
-  const MIC_KEY = "psych-assistant-mic-id";
   const HISTORY_KEY = "psych-assistant-history-v1";
   const MAX_HISTORY = 80;
 
@@ -17,13 +16,6 @@
     couple: "Пара",
     sexology: "Сексология",
   };
-  const APPROACH_LABELS = {
-    cbt: "КПТ",
-    gestalt: "Гештальт",
-    eft: "ЭФТ",
-    eclectic: "Эклектика",
-  };
-
   const $ = (id) => document.getElementById(id);
 
   let transcriptEl,
@@ -32,9 +24,7 @@
     anamnesisEl,
     analysisEl,
     clientNameEl,
-    micSelectEl,
     sessionTypeEl,
-    approachEl,
     historyListEl;
   let btnStart, btnStop, btnAnalyze, btnExport, btnClear, btnSaveHistory;
   let pillApi, pillSession, pillChars;
@@ -44,7 +34,6 @@
   let listening = false;
   let lines = [];
   let interimLine = "";
-  let preferredMicId = "";
   let lastResult = null;
   let analyzeTimer = null;
   let analyzing = false;
@@ -59,7 +48,6 @@
     return {
       clientName: clientNameEl ? clientNameEl.value.trim() || null : null,
       sessionType: sessionTypeEl ? sessionTypeEl.value : "primary",
-      approach: approachEl ? approachEl.value || null : null,
       at: new Date().toISOString(),
     };
   }
@@ -97,8 +85,7 @@
           minute: "2-digit",
         });
         var st = SESSION_LABELS[item.sessionType] || item.sessionType || "";
-        var ap = APPROACH_LABELS[item.approach] || "";
-        var meta = [st, ap].filter(Boolean).join(" · ");
+        var meta = st;
         return (
           '<li class="history-item">' +
           '<button type="button" class="history-load" data-id="' +
@@ -129,7 +116,6 @@
       id: "h-" + Date.now(),
       clientName: meta.clientName || "Клиент",
       sessionType: meta.sessionType,
-      approach: meta.approach,
       savedAt: new Date().toISOString(),
       lines: lines.slice(),
       result: lastResult,
@@ -152,7 +138,6 @@
     lastResult = item.result || null;
     if (clientNameEl) clientNameEl.value = item.clientName || "";
     if (sessionTypeEl && item.sessionType) sessionTypeEl.value = item.sessionType;
-    if (approachEl) approachEl.value = item.approach || "";
     renderTranscript();
     if (lastResult) renderResult(lastResult);
     else renderEmptyPanels();
@@ -189,7 +174,6 @@
         JSON.stringify({
           clientName: clientNameEl ? clientNameEl.value : "",
           sessionType: sessionTypeEl ? sessionTypeEl.value : "primary",
-          approach: approachEl ? approachEl.value : "",
           lines: lines,
           lastResult: lastResult,
           savedAt: new Date().toISOString(),
@@ -207,7 +191,6 @@
       var d = JSON.parse(raw);
       if (d.clientName && clientNameEl) clientNameEl.value = d.clientName;
       if (sessionTypeEl && d.sessionType) sessionTypeEl.value = d.sessionType;
-      if (approachEl && d.approach !== undefined) approachEl.value = d.approach;
       if (Array.isArray(d.lines) && d.lines.length) lines = d.lines;
       if (d.lastResult) lastResult = d.lastResult;
       renderTranscript();
@@ -432,43 +415,10 @@
     return true;
   }
 
-  async function loadMicDevices() {
-    if (!micSelectEl || !navigator.mediaDevices?.enumerateDevices) return;
-    try {
-      var devices = await navigator.mediaDevices.enumerateDevices();
-      var inputs = devices.filter(function (d) {
-        return d.kind === "audioinput";
-      });
-      micSelectEl.innerHTML =
-        '<option value="">Системный по умолчанию</option>' +
-        inputs
-          .map(function (d) {
-            var label = d.label || "Микрофон " + d.deviceId.slice(0, 8);
-            var sel = d.deviceId === preferredMicId ? " selected" : "";
-            return (
-              '<option value="' +
-              d.deviceId.replace(/"/g, "") +
-              '"' +
-              sel +
-              ">" +
-              escapeHtml(label) +
-              "</option>"
-            );
-          })
-          .join("");
-    } catch (e) {
-      console.warn("mic list", e);
-    }
-  }
-
   async function requestMicrophone() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
     try {
-      var audio = true;
-      if (preferredMicId) {
-        audio = { deviceId: { exact: preferredMicId } };
-      }
-      var stream = await navigator.mediaDevices.getUserMedia({ audio: audio });
+      var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach(function (t) {
         t.stop();
       });
@@ -613,10 +563,8 @@
     var name = meta.clientName || "Клиент";
     var date = new Date().toLocaleString("ru-RU");
     var st = SESSION_LABELS[meta.sessionType] || "";
-    var ap = APPROACH_LABELS[meta.approach] || "";
     var md = "# Сессия: " + name + "\n\n**Дата:** " + date + "\n";
     if (st) md += "**Тип:** " + st + "\n";
-    if (ap) md += "**Подход:** " + ap + "\n";
     md += "\n## Расшифровка\n\n" + (getTranscriptText() || "_пусто_") + "\n\n";
 
     if (!lastResult) return md + "_Разбор не выполнялся_\n";
@@ -695,10 +643,7 @@
     analysisEl = $("analysis");
     clientNameEl = $("clientName");
     sessionTypeEl = $("sessionType");
-    approachEl = $("approach");
-    micSelectEl = $("micSelect");
     historyListEl = $("historyList");
-    preferredMicId = localStorage.getItem(MIC_KEY) || "";
     btnStart = $("btnStart");
     btnStop = $("btnStop");
     btnAnalyze = $("btnAnalyze");
@@ -715,18 +660,6 @@
     }
 
     setupRecognition();
-    loadMicDevices();
-    if (micSelectEl) {
-      micSelectEl.addEventListener("change", function () {
-        preferredMicId = micSelectEl.value || "";
-        if (preferredMicId) localStorage.setItem(MIC_KEY, preferredMicId);
-        else localStorage.removeItem(MIC_KEY);
-      });
-    }
-    if (navigator.mediaDevices?.addEventListener) {
-      navigator.mediaDevices.addEventListener("devicechange", loadMicDevices);
-    }
-
     btnStart.addEventListener("click", function () {
       startListening();
     });
