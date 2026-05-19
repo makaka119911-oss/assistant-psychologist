@@ -400,8 +400,16 @@
     recognition.onerror = function (e) {
       if (e.error === "no-speech") return;
       var msg = "Ошибка микрофона";
-      if (e.error === "not-allowed") msg = "Разрешите микрофон в браузере";
-      else if (e.error === "network") msg = "Нет сети для распознавания речи";
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        msg =
+          "Микрофон запрещён. Нажмите 🔒 слева от адреса → Микрофон → Разрешить → обновите страницу (F5).";
+        listening = false;
+        stopMicMonitor();
+        if (btnStart) btnStart.disabled = false;
+        if (btnStop) btnStop.disabled = true;
+        clearInterval(analyzeTimer);
+        updateStatPills();
+      } else if (e.error === "network") msg = "Нет сети для распознавания речи";
       else msg = "Ошибка: " + e.error;
       setStatus(msg);
       setLiveStatus(msg);
@@ -479,8 +487,17 @@
       tickMicLevel();
       return true;
     } catch (e) {
-      setStatus("Не удалось открыть микрофон: " + (e.message || "ошибка"));
+      var denied = e.name === "NotAllowedError" || e.name === "PermissionDeniedError";
+      setStatus(
+        denied
+          ? "Микрофон запрещён. 🔒 у адресной строки → Микрофон → Разрешить → F5."
+          : "Не удалось открыть микрофон: " + (e.message || "ошибка"),
+      );
       setLiveStatus("");
+      if (btnStart) btnStart.disabled = false;
+      if (btnStop) btnStop.disabled = true;
+      listening = false;
+      updateStatPills();
       return false;
     }
   }
@@ -493,7 +510,11 @@
 
     setStatus("Запрашиваем микрофон…");
     var ok = await startMicMonitor();
-    if (!ok) return;
+    if (!ok) {
+      if (btnStart) btnStart.disabled = false;
+      if (btnStop) btnStop.disabled = true;
+      return;
+    }
 
     listening = true;
     lastAnalyzedLen = 0;
