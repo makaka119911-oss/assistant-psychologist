@@ -2,7 +2,8 @@
   "version": 2,
   "functions": {
     "api/analyze.js": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": "server/prompts/system.md"
     }
   },
   "headers": [

@@ -15,6 +15,8 @@
     "eas:apk": "eas build -p android --profile preview"
   },
   "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-voice/voice": "^3.2.4",
     "@react-navigation/bottom-tabs": "^7.2.0",

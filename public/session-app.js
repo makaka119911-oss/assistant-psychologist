@@ -11,7 +11,7 @@
   const $ = (id) => document.getElementById(id);
 
   let transcriptEl, statusEl, liveStatusEl, anamnesisEl, analysisEl, clientNameEl;
-  let btnStart, btnStop, btnAnalyze, btnExport, btnClear;
+  let btnStart, btnStop, btnAnalyze, btnExport, btnClear, btnObsidian;
   let pillApi, pillSession, pillChars;
   let saveTimer = null;
 
@@ -328,6 +328,18 @@
     }, LIVE_INTERVAL_MS);
   }
 
+  async function parseApiResponse(res) {
+    var raw = await res.text();
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      if (raw.indexOf("A server error") !== -1 || raw.indexOf("FUNCTION_INVOCATION") !== -1) {
+        throw new Error("Сервер Vercel упал при разборе. Подождите и нажмите «Разбор сейчас» снова.");
+      }
+      throw new Error(raw.slice(0, 120) || "Ответ сервера не JSON");
+    }
+  }
+
   async function runAnalyze(silent) {
     var text = getTranscriptText();
     if (text.length < MIN_CHARS) {
@@ -353,8 +365,8 @@
           },
         }),
       });
-      var data = await res.json();
-      if (!data.ok) throw new Error(data.error || "Ошибка API");
+      var data = await parseApiResponse(res);
+      if (!res.ok || !data.ok) throw new Error(data.error || "Ошибка API (" + res.status + ")");
       lastResult = data.result;
       lastAnalyzedLen = text.length;
       lastAnalyzedAt = new Date();
@@ -447,6 +459,7 @@
     btnAnalyze = $("btnAnalyze");
     btnExport = $("btnExport");
     btnClear = $("btnClear");
+    btnObsidian = $("btnObsidian");
     pillApi = $("pillApi");
     pillSession = $("pillSession");
     pillChars = $("pillChars");

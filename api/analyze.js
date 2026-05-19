@@ -1,11 +1,7 @@
-import { analyzeTranscript } from "../server/cerebras.mjs";
-
-export const config = {
-  maxDuration: 60,
-};
+const { analyzeTranscript } = require("../lib/analyzeCerebras.cjs");
 
 /** POST /api/analyze — разбор расшифровки через Cerebras */
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") {
     res.status(204).end();
     return;
@@ -42,4 +38,8 @@ export default async function handler(req, res) {
       error: String(e.message || e),
     });
   }
-}
+};
+
+module.exports.config = {
+  maxDuration: 60,
+};
