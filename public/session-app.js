@@ -11,7 +11,7 @@
   const $ = (id) => document.getElementById(id);
 
   let transcriptEl, statusEl, liveStatusEl, anamnesisEl, analysisEl, clientNameEl;
-  let btnStart, btnStop, btnAnalyze, btnExport, btnClear, btnObsidian;
+  let btnStart, btnStop, btnAnalyze, btnExport, btnClear;
   let pillApi, pillSession, pillChars;
   let saveTimer = null;
 
@@ -479,7 +479,6 @@
       runAnalyze(false);
     });
     btnExport.addEventListener("click", exportReport);
-    if (btnObsidian) btnObsidian.addEventListener("click", exportObsidian);
     btnClear.addEventListener("click", function () {
       if (confirm("Очистить расшифровку и разбор?")) clearSession();
     });
