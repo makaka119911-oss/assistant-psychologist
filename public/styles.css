@@ -325,6 +325,52 @@ body {
   min-height: 1.2em;
 }
 
+.mic-level-wrap {
+  margin-top: 0.65rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.mic-level-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mic-level-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.mic-level-track {
+  flex: 1;
+  height: 8px;
+  background: var(--surface);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.mic-level-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--brand), #a78bfa);
+  transition: width 0.08s linear;
+}
+
+.mic-level-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
 .hint {
   font-size: 0.8125rem;
   color: var(--muted);
@@ -499,10 +545,6 @@ ul.compact li {
 
 .fold summary::-webkit-details-marker {
   display: none;
-}
-
-.fold-mic .input {
-  margin-top: 0.45rem;
 }
 
 .toolbar-main {

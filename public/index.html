@@ -73,6 +73,17 @@
         <div class="status-bar">
           <p class="status" id="status">Нажмите «Начать приём»</p>
           <p class="live-status" id="liveStatus"></p>
+          <div class="mic-level-wrap" id="micLevelWrap" hidden>
+            <div class="mic-level-row">
+              <span class="mic-level-label">Вход в Chrome</span>
+              <div class="mic-level-track" aria-hidden="true">
+                <div class="mic-level-fill" id="micLevelFill"></div>
+              </div>
+            </div>
+            <p class="mic-level-hint" id="micLevelHint">
+              Говорит клиент — полоска должна двигаться. Если только вы — звук из Zoom не доходит.
+            </p>
+          </div>
         </div>
 
         <h2 class="section-label">Расшифровка</h2>

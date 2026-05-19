@@ -39,6 +39,11 @@
   let analyzing = false;
   let lastAnalyzedLen = 0;
   let lastAnalyzedAt = null;
+  let micStream = null;
+  let micAudioCtx = null;
+  let micAnalyser = null;
+  let micLevelRaf = 0;
+  let micLevelEl, micLevelFillEl, micLevelWrapEl, micLevelHintEl;
 
   function getTranscriptText() {
     return lines.join("\n").trim();
@@ -415,17 +420,67 @@
     return true;
   }
 
-  async function requestMicrophone() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
-    try {
-      var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(function (t) {
+  function stopMicMonitor() {
+    if (micLevelRaf) cancelAnimationFrame(micLevelRaf);
+    micLevelRaf = 0;
+    if (micStream) {
+      micStream.getTracks().forEach(function (t) {
         t.stop();
       });
+      micStream = null;
+    }
+    if (micAudioCtx) {
+      micAudioCtx.close().catch(function () {});
+      micAudioCtx = null;
+    }
+    micAnalyser = null;
+    if (micLevelFillEl) micLevelFillEl.style.width = "0%";
+    if (micLevelWrapEl) micLevelWrapEl.hidden = true;
+  }
+
+  function tickMicLevel() {
+    if (!micAnalyser || !micLevelFillEl) return;
+    var data = new Uint8Array(micAnalyser.frequencyBinCount);
+    micAnalyser.getByteFrequencyData(data);
+    var sum = 0;
+    for (var i = 0; i < data.length; i++) sum += data[i];
+    var avg = data.length ? sum / data.length : 0;
+    var pct = Math.min(100, Math.round((avg / 128) * 100));
+    micLevelFillEl.style.width = pct + "%";
+    if (micLevelHintEl && listening) {
+      if (pct < 4) {
+        micLevelHintEl.textContent = "Тишина на входе — проверьте Voicemeeter Out B1 в Windows.";
+      } else if (pct < 12) {
+        micLevelHintEl.textContent = "Сигнал слабый — поднимите громкость Zoom и ползунок Input 2 в Voicemeeter.";
+      } else {
+        micLevelHintEl.textContent = "Сигнал есть. Если клиента нет в тексте — скажите громче или см. простой режим без кабеля.";
+      }
+    }
+    micLevelRaf = requestAnimationFrame(tickMicLevel);
+  }
+
+  async function startMicMonitor() {
+    stopMicMonitor();
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
+      });
+      micAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var src = micAudioCtx.createMediaStreamSource(micStream);
+      micAnalyser = micAudioCtx.createAnalyser();
+      micAnalyser.fftSize = 256;
+      src.connect(micAnalyser);
+      if (micLevelWrapEl) micLevelWrapEl.hidden = false;
+      tickMicLevel();
       return true;
     } catch (e) {
-      setStatus("Не удалось открыть выбранный микрофон — попробуйте «по умолчанию»");
-      setLiveStatus("Микрофон: " + (e.message || "ошибка"));
+      setStatus("Не удалось открыть микрофон: " + (e.message || "ошибка"));
+      setLiveStatus("");
       return false;
     }
   }
@@ -437,7 +492,7 @@
     }
 
     setStatus("Запрашиваем микрофон…");
-    var ok = await requestMicrophone();
+    var ok = await startMicMonitor();
     if (!ok) return;
 
     listening = true;
@@ -472,6 +527,7 @@
 
   function stopListening() {
     listening = false;
+    stopMicMonitor();
     if (recognition) {
       try {
         recognition.stop();
@@ -639,6 +695,9 @@
     transcriptEl = $("transcript");
     statusEl = $("status");
     liveStatusEl = $("liveStatus");
+    micLevelWrapEl = $("micLevelWrap");
+    micLevelFillEl = $("micLevelFill");
+    micLevelHintEl = $("micLevelHint");
     anamnesisEl = $("anamnesis");
     analysisEl = $("analysis");
     clientNameEl = $("clientName");
@@ -674,7 +733,6 @@
     });
     if (clientNameEl) clientNameEl.addEventListener("input", scheduleSaveDraft);
     if (sessionTypeEl) sessionTypeEl.addEventListener("change", scheduleSaveDraft);
-    if (approachEl) approachEl.addEventListener("change", scheduleSaveDraft);
     if (historyListEl) {
       historyListEl.addEventListener("click", function (e) {
         var loadBtn = e.target.closest(".history-load");
