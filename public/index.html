@@ -15,7 +15,7 @@
     <header class="hero">
       <div class="hero-inner">
         <div class="brand">
-          <span class="logo" aria-hidden="true">◆</span>
+          <span class="logo" aria-hidden="true"></span>
           <div>
             <h1>Ассистент психолога</h1>
             <p class="tagline">Живой разбор · анамнез · подсказки для сессии</p>
@@ -33,11 +33,11 @@
       <section class="panel panel-session">
         <div class="panel-head">
           <h2>Сессия</h2>
-          <span class="badge badge-soft">Chrome + микрофон</span>
         </div>
 
+        <div class="session-setup">
         <label class="input-label" for="clientName">Имя клиента</label>
-        <input type="text" id="clientName" class="input" placeholder="Как представился клиент" autocomplete="name" />
+        <input type="text" id="clientName" class="input input-lg" placeholder="Как представился клиент" autocomplete="name" />
 
         <div class="session-meta-row">
           <div>
@@ -52,52 +52,41 @@
           <div>
             <label class="input-label" for="approach">Подход</label>
             <select id="approach" class="input">
-              <option value="">Эклектика (по умолчанию)</option>
+              <option value="">Эклектика</option>
               <option value="cbt">КПТ</option>
               <option value="gestalt">Гештальт</option>
               <option value="eft">ЭФТ</option>
-              <option value="eclectic">Эклектика</option>
             </select>
           </div>
         </div>
 
-        <label class="input-label" for="micSelect">Источник звука (микрофон)</label>
-        <select id="micSelect" class="input" aria-describedby="micHint">
-          <option value="">Системный микрофон по умолчанию</option>
-        </select>
-        <p id="micHint" class="hint">
-          Для Zoom / Телемост: <a href="https://vb-audio.com/Cable/" target="_blank" rel="noopener">VB-Cable</a> —
-          звук звонка в CABLE Input, здесь выберите <strong>CABLE Output</strong>.
-        </p>
+          <details class="fold fold-mic">
+            <summary>Микрофон</summary>
+            <select id="micSelect" class="input">
+              <option value="">Системный по умолчанию</option>
+            </select>
+          </details>
+        </div>
 
-        <details class="call-help">
-          <summary>Zoom / Телемост — как слышать клиента</summary>
-          <ul>
-            <li><strong>Не тестируйте на YouTube</strong> — фразы теряются из‑за эха, это не звонок.</li>
-            <li><strong>С наушниками</strong> без кабеля Chrome слышит только вас, не клиента.</li>
-            <li><strong>Лучше:</strong> VB-Cable + CABLE Output в списке выше.</li>
-            <li><strong>Проще:</strong> колонки + Stereo Mix (если есть в Windows).</li>
-            <li>Сначала «Начать приём», потом войти в Zoom / Телемост.</li>
-          </ul>
-        </details>
-
-        <div class="toolbar">
-          <button type="button" id="btnStart" class="btn btn-primary">
+        <div class="toolbar toolbar-main">
+          <button type="button" id="btnStart" class="btn btn-primary btn-lg">
             <span class="btn-icon">▶</span> Начать приём
           </button>
           <button type="button" id="btnStop" class="btn btn-ghost" disabled>
             <span class="btn-icon">■</span> Пауза
           </button>
+        </div>
+        <div class="toolbar toolbar-sub">
           <button type="button" id="btnAnalyze" class="btn btn-secondary">
-            <span class="btn-icon">↻</span> Разбор сейчас
+            <span class="btn-icon">↻</span> Разбор
           </button>
           <button type="button" id="btnExport" class="btn btn-ghost">Отчёт</button>
           <button type="button" id="btnSaveHistory" class="btn btn-ghost">В историю</button>
           <button type="button" id="btnClear" class="btn btn-danger-text">Очистить</button>
         </div>
 
-        <details class="history-panel" id="historyPanel">
-          <summary>История сессий (на этом устройстве)</summary>
+        <details class="history-panel fold" id="historyPanel">
+          <summary>История на этом устройстве</summary>
           <ul id="historyList" class="history-list"></ul>
         </details>
 
@@ -107,7 +96,6 @@
         </div>
 
         <h2 class="section-label">Расшифровка</h2>
-        <p class="hint">Говорите свободно — текст появится ниже, как в диалоге</p>
         <div id="transcript" class="chat-log" role="log" aria-live="polite">
           <p class="chat-placeholder">Текст появится здесь…</p>
         </div>
@@ -118,8 +106,9 @@
           <h2>Живой разбор</h2>
           <span class="badge">~25 сек</span>
         </div>
-        <p class="hint">Анамнез и резюме обновляются во время приёма</p>
-        <div id="anamnesis" class="analysis-scroll"></div>
+        <div id="anamnesis" class="analysis-scroll">
+          <p class="empty-state">Запустите приём — разбор появится здесь</p>
+        </div>
       </section>
 
       <section class="panel panel-details">

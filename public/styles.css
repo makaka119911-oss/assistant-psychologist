@@ -69,10 +69,18 @@ body {
   border-radius: var(--radius);
   background: var(--brand-subtle);
   border: 1px solid var(--brand-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
+  display: block;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.logo::after {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  background: var(--brand);
+  transform: rotate(45deg);
+  border-radius: 2px;
 }
 
 .hero h1 {
@@ -456,11 +464,73 @@ ul.compact li {
   font-size: 0.875rem;
 }
 
+.session-setup {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0.85rem 0.9rem;
+  margin-bottom: 0.85rem;
+}
+
+.session-setup .input-label:first-of-type {
+  margin-top: 0;
+}
+
 .session-meta-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
+  margin: 0.65rem 0 0;
+}
+
+.input-lg {
+  font-size: 0.9375rem;
+  padding: 0.6rem 0.8rem;
+}
+
+.fold {
+  margin-top: 0.65rem;
+  font-size: 0.8125rem;
+}
+
+.fold summary {
+  cursor: pointer;
+  color: var(--muted);
+  list-style: none;
+  user-select: none;
+}
+
+.fold summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold-mic .input {
+  margin-top: 0.45rem;
+}
+
+.toolbar-main {
+  margin-top: 0;
+  gap: 0.5rem;
+}
+
+.toolbar-sub {
+  margin-top: 0.4rem;
   margin-bottom: 0.5rem;
+}
+
+.btn-lg {
+  flex: 1;
+  min-width: 10rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.9375rem;
+}
+
+.empty-state {
+  margin: 0;
+  padding: 1.5rem 0.5rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.875rem;
 }
 
 .say-now {

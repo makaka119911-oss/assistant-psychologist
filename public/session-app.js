@@ -155,10 +155,7 @@
     if (approachEl) approachEl.value = item.approach || "";
     renderTranscript();
     if (lastResult) renderResult(lastResult);
-    else {
-      if (anamnesisEl) anamnesisEl.innerHTML = "";
-      if (analysisEl) analysisEl.innerHTML = "";
-    }
+    else renderEmptyPanels();
     scheduleSaveDraft();
     setStatus("Загружена сессия из истории");
   }
@@ -443,7 +440,7 @@
         return d.kind === "audioinput";
       });
       micSelectEl.innerHTML =
-        '<option value="">Системный микрофон по умолчанию</option>' +
+        '<option value="">Системный по умолчанию</option>' +
         inputs
           .map(function (d) {
             var label = d.label || "Микрофон " + d.deviceId.slice(0, 8);
@@ -665,6 +662,14 @@
     downloadMarkdown(buildReportMarkdown(), "session");
   }
 
+  function renderEmptyPanels() {
+    if (anamnesisEl) {
+      anamnesisEl.innerHTML =
+        '<p class="empty-state">Запустите приём — разбор появится здесь</p>';
+    }
+    if (analysisEl) analysisEl.innerHTML = "";
+  }
+
   function clearSession() {
     stopListening();
     lines = [];
@@ -672,8 +677,7 @@
     lastResult = null;
     lastAnalyzedLen = 0;
     renderTranscript();
-    if (anamnesisEl) anamnesisEl.innerHTML = "";
-    if (analysisEl) analysisEl.innerHTML = "";
+    renderEmptyPanels();
     if (clientNameEl) clientNameEl.value = "";
     try {
       localStorage.removeItem(DRAFT_KEY);
